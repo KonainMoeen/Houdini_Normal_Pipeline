@@ -13,6 +13,7 @@ import json
 import math
 from paths import get_parser, get_json_file
 from filestructure import FileStructureSetup
+from pprint import pprint
 
 argv = sys.argv[1:]
 def main(args = vars(get_parser().parse_known_args(argv)[0])):   
@@ -48,15 +49,16 @@ def main(args = vars(get_parser().parse_known_args(argv)[0])):
         fileObj.read_files()
         # for background in fileObj.assetfiles_bg:
              
-        # if not b_mix_multiple_instances:
-        #     totalcount = (len(fileObj.assetfiles_atlas) if len(fileObj.assetfiles_atlas) > 0  else 1 ) * (len(fileObj.assetfiles_3d) if len(fileObj.assetfiles_3d) > 0  else 1 ) * (len(fileObj.assetfiles_surfaces) if len(fileObj.assetfiles_surfaces) > 0  else 1 )
-        # else:
-        #     totalcount = renders_per_surface
-        totalcount = renders_per_surface
+        if not b_mix_multiple_instances:
+            totalcount = (len(fileObj.assetmaps['green_lichen']) if len(fileObj.assetmaps['green_lichen']) > 0  else 1 ) * (len(fileObj.assetmaps['white_lichen']) if len(fileObj.assetmaps['white_lichen']) > 0  else 1 ) * (len(fileObj.assetmaps['moss']) if len(fileObj.assetmaps['moss']) > 0  else 1 )
+        else:
+            totalcount = renders_per_surface
+        #totalcount = renders_per_surface
         #for index, renders in enumerate(totalcount):
                 
-        #print(totalcount)
-        print(fileObj.get_maps_set())
+        print(totalcount)
+        pprint(fileObj.get_maps_per_class())
+        pprint(fileObj.get_maps_set())
         #print(fileObj.assetmaps)
                 
         #         # # setup files in Houdini
