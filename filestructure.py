@@ -7,25 +7,25 @@ import itertools
 
 
 class FileStructureSetup():
-    def __init__(self, asset_type_3d, asset_type_surface, asset_type_atlas):
+    def __init__(self, _asset_type_3d, _asset_type_surface, _asset_type_atlas):
 
         self.path = get_assets_path()
 
-        self.asset_type_3d = asset_type_3d
-        self.asset_type_surface = asset_type_surface
-        self.asset_type_atlas = asset_type_atlas
+        self._asset_type_3d = _asset_type_3d
+        self._asset_type_surface = _asset_type_surface
+        self._asset_type_atlas = _asset_type_atlas
 
-        self.assetfiles_atlas, self.assetfiles_3d, self.assetfiles_surfaces, self.assetfiles_bg = [], [], [], []
+        self._assetfiles_atlas_list, self._assetfiles_3d_list, self._assetfiles_surfaces_list, self._assetfiles_bg_list = [], [], [], []
 
     # according to the json input check which folders to read
 
     def _setup_folders_to_search(self):
         folders_to_search = ['\surface']  # for backgorund surfaces
-        if self.asset_type_3d:
+        if self._asset_type_3d:
             folders_to_search.append('masked_3d')
-        if self.asset_type_surface:
+        if self._asset_type_surface:
             folders_to_search.append('masked_surfaces')
-        if self.asset_type_atlas:
+        if self._asset_type_atlas:
             folders_to_search.append('atlas_decal')
 
         return folders_to_search
@@ -38,51 +38,51 @@ class FileStructureSetup():
         self.assetmaps = {'albedo': [], 'normal': [], 'green_lichen': [], 'white_lichen': [], 'moss': []}
 
         # remove masks according to the json input
-        for sel_class in classes:
-            if sel_class not in self.asset_type_atlas:
-                for index, file_list in enumerate(self.assetfiles_atlas):
+        for selected_class in classes:
+            if selected_class not in self._asset_type_atlas:
+                for index, file_list in enumerate(self._assetfiles_atlas_list):
                     for file in file_list:
-                        if sel_class in file or ('opacity' in file.lower() and sel_class == 'moss'): # not removing the opacity mask in atlas
-                            self.assetfiles_atlas[index].remove(file)
-            if sel_class not in self.asset_type_3d:
-                for index, file_list in enumerate(self.assetfiles_3d):
+                        if selected_class in file.split('\\')[-1] or ('opacity' in file.split('\\')[-1] and selected_class == 'moss'): # not removing the opacity mask in atlas
+                            self._assetfiles_atlas_list[index].remove(file)
+            if selected_class not in self._asset_type_3d:
+                for index, file_list in enumerate(self._assetfiles_3d_list):
                     for file in file_list:
-                        if sel_class in file:
-                            self.assetfiles_3d[index].remove(file)
-            if sel_class not in self.asset_type_surface:
-                for index, file_list in enumerate(self.assetfiles_surfaces):
+                        if selected_class in file.split('\\')[-1]:
+                            self._assetfiles_3d_list[index].remove(file)
+            if selected_class not in self._asset_type_surface:
+                for index, file_list in enumerate(self._assetfiles_surfaces_list):
                     for file in file_list:
-                        if sel_class in file:
-                            self.assetfiles_surfaces[index].remove(file)
+                        if selected_class in file.split('\\')[-1]:
+                            self._assetfiles_surfaces_list[index].remove(file)
 
-        filtered_list = self.assetfiles_atlas + self.assetfiles_3d + self.assetfiles_surfaces
-
+        filtered_list = self._assetfiles_atlas_list + self._assetfiles_3d_list + self._assetfiles_surfaces_list
+                
         # remove folders that have no masks in them
         _ = []
         for lists in filtered_list:
             for items in lists:
-                if 'surfacemask' in items.lower() or 'opacity' in items.lower():
+                if 'surfacemask' in items or 'opacity' in items:
                     _.append(lists)
                     break
                 
         filtered_list = _
 
-        # read all the classes and add them to their key value pairs
-        for listofassettypes in filtered_list:
-            for map in listofassettypes:
-                if '_albedo' in map.lower():
+        # read all the maps and add them to their key value pairs
+        for map_types in filtered_list:
+            for map in map_types:
+                if '_albedo' in map.split('\\')[-1]:
                     self.assetmaps["albedo"].append(map)
-                elif '_normal' in map.lower():
+                elif '_normal' in map.split('\\')[-1]:
                     self.assetmaps["normal"].append(map)
-                elif '_green_lichen' in map.lower():
+                elif '_green_lichen' in map.split('\\')[-1]:
                     self.assetmaps["green_lichen"].append(map)
-                elif '_white_lichen' in map.lower():
+                elif '_white_lichen' in map.split('\\')[-1]:
                     self.assetmaps["white_lichen"].append(map)
                 # because we are using opacity map in atlases instead of masks
-                elif '_moss' in map.lower() or 'opacity' in map.lower():
+                elif '_moss' in map.split('\\')[-1] or 'opacity' in map.split('\\')[-1]:
                     self.assetmaps["moss"].append(map)
-        
-        # converting dictionary into a list of lists for itertools -  where each list contains a specific class
+                            
+        # convert dictionary into a list of lists for itertools -  where each list contains a specific class
         self.uniqueset = []
         if len(self.assetmaps['green_lichen']) > 0:
             self.uniqueset.append(self.assetmaps['green_lichen'])
@@ -97,24 +97,29 @@ class FileStructureSetup():
             for folder in self._setup_folders_to_search():
                 if folder in root:
                     if files:
+                        # adding the root path to the files
+                        for index, file  in enumerate(files):
+                            files[index] = file.replace(file, root.lower() + '/' + file.lower()).replace('/', '\\')
+                            
+                        # placing files in specific variables according to their folder
                         if folder == 'atlas_decal':
-                            self.assetfiles_atlas.append(files)
+                            self._assetfiles_atlas_list.append(files)
                         elif folder == 'masked_3d':
-                            self.assetfiles_3d.append(files)
+                            self._assetfiles_3d_list.append(files)
                         elif folder == 'masked_surfaces':
-                            self.assetfiles_surfaces.append(files)
+                            self._assetfiles_surfaces_list.append(files)
                         elif folder == '\\surface':
-                            self.assetfiles_bg.append(files)
+                            self._assetfiles_bg_list.append(files)
                             
         self._set_masks()
-
-    def get_maps_set(self):
+                            
+    # sends unique lists of maps from classes
+    def get_masks_list(self):
         return list(itertools.product(*self.uniqueset))
     
-    def get_maps_per_class(self):
-        # _ = list()
-        # _.append(self.assetfiles_atlas)
-        # _.append(self.assetfiles_3d)
-        # _.append(self.assetfiles_surfaces)
-        
+    # sends all of the maps for the current batch in a form of dictionary
+    def get_all_maps_dict(self):
         return self.assetmaps
+    
+    def get_background_maps_list(self):
+        return self._assetfiles_bg_list
