@@ -1,5 +1,3 @@
-# import json
-# from paths import get_json_file
 from pprint import pprint
 from paths import get_assets_path
 import os

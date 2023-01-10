@@ -4,13 +4,7 @@ os.environ["OPENCV_IO_ENABLE_OPENEXR"]="1"
 from paths import append_anaconda3_library
 append_anaconda3_library()
 from houdinisetup import HoudiniSetup
-import itertools
-import cv2
-import numpy as np
-import shutil 
-from PIL import Image
 import json
-import math
 from paths import get_parser, get_json_file
 from filestructure import FileStructureSetup
 from pprint import pprint
@@ -35,10 +29,13 @@ def main(args = vars(get_parser().parse_known_args(argv)[0])):
         intensity_multiplier = jsonObj['batches'][batch_idx]['scatter_percent']
         b_mix_multiple_instances = jsonObj['batches'][batch_idx]['mix_multiple_instances']
         
-        # if any(asset_types_3d):
-        #     print('Initilize preprocessing UV-islands for 3d-assets')
-        #     #preprocess_3D_asset_masks(args)
-        #     print('DONE: masks for UV-islands created for all 3d-assets!')
+        
+        houObj = HoudiniSetup(args)
+        
+        if any(asset_types_3d):
+            print('Initilize preprocessing UV-islands for 3d-assets')
+            houObj.preprocess_3D_asset_masks(args)
+            print('DONE: masks for UV-islands created for all 3d-assets!')
         
         # Using the json input, read the asset maps and setup the render structure
         fileObj = FileStructureSetup(asset_types_3d, asset_types_surface, asset_types_atlas)
@@ -58,16 +55,11 @@ def main(args = vars(get_parser().parse_known_args(argv)[0])):
                 #pprint(fileObj.get_masks_list()[index])
                         
                 ## open the main pipeline hip file, set the maps and render 
-                houObj = HoudiniSetup(args)
                 houObj.load_hipfile(args['hipfile'])
-                houObj.set_input_files(background_maps, fileObj.get_masks_list()[index], fileObj.get_all_maps_dict(), index)
-                houObj.disable_extra_render_nodes()                
+                houObj.set_houdini(batch_idx, background_maps, index, fileObj.get_masks_list()[index], fileObj.get_all_maps_dict())
                 houObj.setFrameNumber(None)
                 houObj.render()
-                
                 ## open the composite file, blend the background normal map with foreground normals maps of classes and output the normal map in the render folder
-                houObj.load_hipfile(args['comphipfile'])
-                houObj.disable_extra_composite_nodes()
                 houObj.render_composite()
                 #houObj.save_and_increment_hip_file()
         

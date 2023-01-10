@@ -1,5 +1,5 @@
 import argparse
-from email.policy import default
+#from email.policy import default
 import sys
 
 
@@ -55,8 +55,8 @@ def get_parser():
                         default = DEFAULT_FOLDER_PATH + 'assets/atlas_decal',
                         help='path to the folder containing the asset folders that have atlases and decals.')
 
-    parser.add_argument('--image_res_div', 
-                        default=8,
+    parser.add_argument('--image_res', 
+                        default=2048,
                         help='to calculate reolution for each render, 8192 / image_res_div = resolution')
 
     parser.add_argument('--render_fileformat', 

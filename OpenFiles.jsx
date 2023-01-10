@@ -1,13 +1,13 @@
 
 // Define path1 where exr files are located in subdirectories
-var path1 = new String("C:\\Users\\Konain\\Documents\\Houdini_Pipeline\\renders\\test")
+var path1 = new String("C:\\Users\\Konain\\Documents\\HoudiniProjects\\Houdini_Normal_Pipeline\\renders\\test")
 var topFolder = new Folder(path1);
 var fileandfolderAr = scanSubFolders(topFolder, /\.(exr)$/i);
 var fileList = fileandfolderAr[0];
 var folderList = fileandfolderAr[1];
 
 // DEFINE SUBSTRING OF FOLDER NAME HERE
-var folderName = "batch1"
+var folderName = ""
 if (folderName != "")
 {
     // Find the folder containing substring in its name
