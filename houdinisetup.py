@@ -18,14 +18,14 @@ class HoudiniSetup():
         
     # sets the path of input files in normal composite hip file
     
-    def _setup_composite_input_files(self):
-        hou.node('obj/Composite/bg').parm('filename1').set(self._render_path + 'Normal_Background.' + self._render_fileformat)
+    def _setup_composite_input_files(self, num_of_renders):
+        hou.node('obj/Composite/bg').parm('filename1').set(self._render_path + 'Normal_Background_' + str(num_of_renders) + '.' + self._render_fileformat)
         if 'moss' not in self._mask_nodes_to_disable:
-            hou.node('obj/Composite/moss').parm('filename1').set(self._render_path + 'Normal_Moss.' +  self._render_fileformat)
+            hou.node('obj/Composite/moss').parm('filename1').set(self._render_path + 'Normal_Moss_'  + str(num_of_renders) + '.' +  self._render_fileformat)
         if 'white_lichen' not in self._mask_nodes_to_disable:
-            hou.node('obj/Composite/white_lichen').parm('filename1').set(self._render_path + 'Normal_WhiteLichen.' +  self._render_fileformat)
+            hou.node('obj/Composite/white_lichen').parm('filename1').set(self._render_path + 'Normal_WhiteLichen_'  + str(num_of_renders) + '.' +  self._render_fileformat)
         if 'green_lichen' not in self._mask_nodes_to_disable:
-            hou.node('obj/Composite/green_lichen').parm('filename1').set(self._render_path + 'Normal_GreenLichen.'  + self._render_fileformat)
+            hou.node('obj/Composite/green_lichen').parm('filename1').set(self._render_path + 'Normal_GreenLichen-'  + str(num_of_renders) + '.'  + self._render_fileformat)
         
     # To setup masks in the obj context
     def _setup_masks(self, masks_list):
@@ -69,18 +69,18 @@ class HoudiniSetup():
                         hou.node('/obj/Render/normal_materials/white_lichen_normal/mtlxUsdUVTexture2').parm('file').set(map)
 
     # sets the path of Geometry renders 
-    def _set__render_path(self):
-        hou.parm('/obj/Render/karmarendersettings2/picture').set(self._render_path + 'Mask_GreenLichen.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings3/picture').set(self._render_path + 'Mask_WhiteLichen.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings4/picture').set(self._render_path + 'Mask_Moss.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings/picture').set(self._render_path + 'Albedo.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings1/picture').set(self._render_path + 'Normal_Background.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings5/picture').set(self._render_path + 'Normal_GreenLichen.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings6/picture').set(self._render_path + 'Normal_WhiteLichen.' + self._render_fileformat)
-        hou.parm('/obj/Render/karmarendersettings7/picture').set(self._render_path + 'Normal_Moss.' + self._render_fileformat)
+    def _set__render_path(self, num_of_renders):
+        hou.parm('/obj/Render/karmarendersettings2/picture').set(self._render_path + 'Mask_GreenLichen_'  + str(num_of_renders) +  '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings3/picture').set(self._render_path + 'Mask_WhiteLichen_' + str(num_of_renders) + '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings4/picture').set(self._render_path + 'Mask_Moss_' + str(num_of_renders) + '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings/picture').set(self._render_path + 'Albedo_' + str(num_of_renders) + '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings1/picture').set(self._render_path + 'Normal_Background_' + str(num_of_renders) + '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings5/picture').set(self._render_path + 'Normal_GreenLichen_' + str(num_of_renders) + '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings6/picture').set(self._render_path + 'Normal_WhiteLichen_' + str(num_of_renders) + '.' + self._render_fileformat)
+        hou.parm('/obj/Render/karmarendersettings7/picture').set(self._render_path + 'Normal_Moss_' + str(num_of_renders) + '.' + self._render_fileformat)
 
-    def _set_composite__render_path(self):
-        hou.parm('obj/Composite/normal_out/copoutput').set(self._render_path + "Normal." + self._render_fileformat)
+    def _set_composite__render_path(self,num_of_renders):
+        hou.parm('obj/Composite/normal_out/copoutput').set(self._render_path + "Normal_" + str(num_of_renders) + '.'  + self._render_fileformat)
         
     def _setup_disable_extra_nodes(self, all_maps_dict):
         if not all_maps_dict['moss']: self._mask_nodes_to_disable.append('moss')
@@ -161,14 +161,15 @@ class HoudiniSetup():
             hou.setFrame(random.randint(0,240))
     
     #renders the image from lops-karma
-    def render(self):
-        self._set__render_path()
+    def render(self, num_of_renders):
+        self._set__render_path(num_of_renders)
         hou.node('/out/render_all').render(verbose=True, output_progress=True)
+        self.render_composite(num_of_renders)
     
     #renders the composited image
-    def render_composite(self):
-        self._setup_composite_input_files()
-        self._set_composite__render_path()
+    def render_composite(self, num_of_renders):
+        self._setup_composite_input_files(num_of_renders)
+        self._set_composite__render_path(num_of_renders)
         hou.node('/obj/Composite/normal_out').render(verbose=True, output_progress=True)
         
     # save the hip file with increment

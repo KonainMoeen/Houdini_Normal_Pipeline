@@ -29,7 +29,6 @@ def main(args = vars(get_parser().parse_known_args(argv)[0])):
         intensity_multiplier = jsonObj['batches'][batch_idx]['scatter_percent']
         b_mix_multiple_instances = jsonObj['batches'][batch_idx]['mix_multiple_instances']
         
-        
         houObj = HoudiniSetup(args)
         
         if any(asset_types_3d):
@@ -41,26 +40,28 @@ def main(args = vars(get_parser().parse_known_args(argv)[0])):
         fileObj = FileStructureSetup(asset_types_3d, asset_types_surface, asset_types_atlas)
         fileObj.read_files()
         
-        for background_maps in fileObj.get_background_maps_list():
+        if not b_mix_multiple_instances:
+            # each unique iteration will create a unique folder
+            total_unique_iterations = (len(fileObj.get_all_maps_dict()['green_lichen']) if len(fileObj.get_all_maps_dict()['green_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['white_lichen']) if len(fileObj.get_all_maps_dict()['white_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['moss']) if len(fileObj.get_all_maps_dict()['moss']) > 0  else 1 )
+        else:
+            total_unique_iterations = 1
             
-            if not b_mix_multiple_instances:
-                total_count = (len(fileObj.get_all_maps_dict()['green_lichen']) if len(fileObj.get_all_maps_dict()['green_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['white_lichen']) if len(fileObj.get_all_maps_dict()['white_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['moss']) if len(fileObj.get_all_maps_dict()['moss']) > 0  else 1 )
-            else:
-                total_count = renders_per_surface
-                
-            for index in range(total_count):
+        for background_maps in fileObj.get_background_maps_list():
+            for index in range(total_unique_iterations):
                 
                 ## print all of the maps read from the assets folder / print the masks for the current render
                 #pprint(fileObj.get_all_maps_dict())
-                #pprint(fileObj.get_masks_list()[index])
-                        
+                #pprint(fileObj.get_masks_list())
+        
                 ## open the main pipeline hip file, set the maps and render 
                 houObj.load_hipfile(args['hipfile'])
                 houObj.set_houdini(batch_idx, background_maps, index, fileObj.get_masks_list()[index], fileObj.get_all_maps_dict())
-                houObj.setFrameNumber(None)
-                houObj.render()
-                ## open the composite file, blend the background normal map with foreground normals maps of classes and output the normal map in the render folder
-                houObj.render_composite()
+                
+                for num_of_renders in range(renders_per_surface):
+                    houObj.setFrameNumber(None)
+                    houObj.render(num_of_renders + 1)
+                    
+                    
                 #houObj.save_and_increment_hip_file()
         
     print("Completed")

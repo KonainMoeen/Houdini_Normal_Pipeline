@@ -32,8 +32,6 @@ def locate_houdini():
     return install_path
 
 def locate_hython_and_hkey():
-    #houdini_path = locate_houdini()
-    #print(houdini_path)
     houdini_path = get_houdini_path()
     hython_path = houdini_path + 'bin\\hython3.9.exe'
     hkey_path = houdini_path + 'bin\\hkey.exe'
@@ -41,9 +39,14 @@ def locate_hython_and_hkey():
     assert os.path.exists(hkey_path), 'hython not found!'
     return hython_path, hkey_path
 
-def bootstrap(argv):
+def run_pipeline():
     hython_path, hkey_path = locate_hython_and_hkey()
     subprocess.Popen([hkey_path])
-    subprocess.call([hython_path, "New_main.py"] + argv)# "syntheticDataGen_001.hip", "main.py"] + argv)
+    subprocess.call([hython_path, "New_main.py"])
+    
+# def bootstrap(argv):
+#     hython_path, hkey_path = locate_hython_and_hkey()
+#     subprocess.Popen([hkey_path])
+#     subprocess.call([hython_path, "main.py"] + argv)# "syntheticDataGen_001.hip", "main.py"] + argv)
 
-bootstrap(sys.argv[1:])
+# bootstrap(sys.argv[1:])

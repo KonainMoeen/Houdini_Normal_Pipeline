@@ -3,8 +3,8 @@
 		{
 			"min_num_samples": 2,
 			"asset_types": {
-				"3D": ["white_lichen"],
-				"surface": [],
+				"3D": [],
+				"surface": [ "moss", "white_lichen"],
 				"atlas": []
 			},
 			"scatter_percent": 0.8,
