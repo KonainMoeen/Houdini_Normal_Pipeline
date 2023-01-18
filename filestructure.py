@@ -5,11 +5,11 @@ import itertools
 from New_settings import Settings
 
 class FileStructureSetup():
-    def __init__(self, _asset_type_3d, _asset_type_surface, _asset_type_atlas, classes):
+    def __init__(self, _asset_type_3d, _asset_type_surface, _asset_type_atlas, classes_list):
         self._asset_type_3d = _asset_type_3d
         self._asset_type_surface = _asset_type_surface
         self._asset_type_atlas = _asset_type_atlas
-        self.classes = classes
+        self.classes_list = classes_list
         self._assetfiles_atlas_list, self._assetfiles_3d_list, self._assetfiles_surfaces_list, self._assetfiles_bg_list = [], [], [], []
         
         self.all_maps = Settings().get_all_maps()
@@ -40,7 +40,7 @@ class FileStructureSetup():
         for key in filtered_3d_dict:
             self.assetmaps[key] = filtered_atlas_dict[key] + filtered_3d_dict[key] + filtered_surface_dict[key]
 
-        self.get_unique_mask_structure(self.classes)
+        self.get_unique_mask_structure(self.classes_list)
 
     def _filter_dict(self, asset_type, unfiltered_dict):
         for key in self.all_classes:
@@ -83,12 +83,24 @@ class FileStructureSetup():
         self._set_masks()
         
     # create unique structure for iterations
-    def get_unique_mask_structure(self, classes):
+    def get_unique_mask_structure(self, classes_list):
         unique_list= []
-        for selected_class in classes:
+        for selected_class in classes_list:
             unique_list.append(self.assetmaps[selected_class])
             
-        return list(itertools.product(*unique_list))
+        return self._list_to_dict(list(itertools.product(*unique_list)),classes_list)
+    
+    def _list_to_dict(self, old_list, classes_list):
+        list_of_dict = list()
+       
+        for map_list in old_list:
+            temp_dict = dict()
+            for index,map in enumerate(map_list):
+                temp_dict[classes_list[index]] = [map]
+        
+                list_of_dict.append(temp_dict)
+
+        return list_of_dict
  
     # sends all of the maps for the current batch in a form of dictionary
     def get_all_maps_dict(self):

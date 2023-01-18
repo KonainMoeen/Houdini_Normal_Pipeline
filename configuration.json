@@ -1,14 +1,14 @@
 {
 	"batches": [
 		{
-			"min_num_samples": 2,
+			"min_num_samples": 1,
 			"asset_types": {
-				"3D": [],
-				"surface": [ "moss", "white_lichen"],
+				"3D": ["moss"],
+				"surface": ["moss", "green_lichen"],
 				"atlas": []
 			},
 			"scatter_percent": 0.8,
-			"mix_multiple_instances": false
+			"mix_multiple_instances": true
 		}
 	]
 

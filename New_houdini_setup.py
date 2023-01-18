@@ -8,6 +8,7 @@ import cv2
 from New_paths import Paths
 from New_settings import Settings
 
+from pprint import pprint
 
 
 class HoudiniSetup():
@@ -33,8 +34,6 @@ class HoudiniSetup():
             network_box.addItem(node)
         network_box.fitAroundContents()
         
-            
-    
     def _obj_set_references(self):
         
         self.geometry = hou.node('/obj/Geometry')
@@ -56,16 +55,17 @@ class HoudiniSetup():
         reverse = self.geometry.node('reverse_default')
         attribdelete  = self.geometry.node('attribdelete_default')
         transform = self.geometry.node('transform_default')
+        blast = self.geometry.node('blast_default')
+        out = self.geometry.node('OUT')
         
-        self.default_setup_nodes = (mask, uv, foreach_begin, delete_small_parts, center_position,foreach_end, group, merge,connectivity,scatter,randomize_rotations,sort,attribute_from_pieces,copytopoints, reverse, attribdelete, transform)
-        self.extra_setup_nodes = (mask, uv, foreach_begin, delete_small_parts, center_position,foreach_end, group)
+        self.default_setup_nodes = [mask, uv, foreach_begin, delete_small_parts, center_position,foreach_end, group, merge,connectivity,scatter,randomize_rotations,sort,attribute_from_pieces,copytopoints, reverse, attribdelete, transform, blast, out]
+        self.extra_setup_nodes = [mask, uv, foreach_begin, delete_small_parts, center_position,foreach_end, group]
         
         
     def _lop_set_references(self):
         
         self.lop = hou.node('/obj/Render')
-        #self.lop.createNode('sopimport')
-
+        self.sop_import = hou.node('/obj/Render/sop_default')
         # for mask
         mask_render_settings = self.lop.node('karmarendersettings_default_mask')
         mask_render = self.lop.node('render_default_mask')
@@ -85,47 +85,8 @@ class HoudiniSetup():
         self.lop_albedo_nodes = (merge, albedo_material_library, albedo_render_settings, albedo_render)
         self.lop_normal_nodes = (normal_material_library, normal_render_settings, normal_render)
             
-    def _obj_single_setup_parameters(self, mask, selected_class):
-        # for mask in current_masks:
-        #     if selected_class in current_masks:
-        #         for node in self.default_setup_nodes:
-        #             if 'mask_default' + selected_class in node:
-        #                 node.parm('file').set(current_masks)
-        for node in self.default_setup_nodes:
-            if 'mask_default_' + selected_class in node.name():
-                node.parm('file').set('testing')
-    
-    def _obj_create_single_setup(self, current_masks, classes):
-        for mask_list in current_masks:
-            for mask in mask_list:
-                print(mask)
-                for selected_class in classes:
-                    print(selected_class)
-                    if selected_class in mask:
-                        print('called')
-                        self._rename_nodes(self._create_default_setup(), selected_class)
-                        self._obj_single_setup_parameters(mask, selected_class)
-
-        
-        
-    
-    def _obj_create_multiple_setup(self, all_maps_dict,classes):
-        pass
-    
-    def _lop_create_setup(self):
-        pass
-    
-    def _lop_create_mask_setup(self):
-        pass
-    
-    def _lop_create_normal_setup(self):
-        pass
-
-    def _lop_create_material_setup(self):
-        pass
-    
-    def _create_default_setup(self):
-        nodes_created = self.geometry.copyItems(self.default_setup_nodes)
+    def _create_setup(self,context,nodes):
+        nodes_created = context.copyItems(nodes)
         self._create_NetworkBox(nodes_created)
         return nodes_created
         
@@ -133,37 +94,104 @@ class HoudiniSetup():
         for node in nodes:
             node.setName(node.name()[:-1] + '_' + rename_string)
             
-        #update references
-        for index in range(len(self.default_setup_nodes)):
-            self.default_setup_nodes[index] = nodes[index]
-            
-            
-    # def _create_object_structure(self, background_maps, all_maps_dict, current_masks, b_mix_multiple_instances ):
-    #     self._obj_set_references()
-        
-    #     if b_mix_multiple_instances:
-    #         self._create_extra_setup()
-    #     else: 
-    #         self.create
-    #     # for class_types in classes:
-    #     #     self._rename_nodes(self._create_default_setup(), class_types)
-        
-    #     self._fix_layout(self.geometry)
-        
-    # def _lop_create_structure(self):
-    #     pass
+        return nodes
     
+    def _obj_setup_default_parameters(self, current_masks_dict, key):
+        hou.node('/obj/Geometry/mask_default_' + key).parm('file').set(current_masks_dict[key][0])
+        hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
+        hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
+        hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
+        hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
+        hou.node('/obj/Geometry/sort_default_' + key).parm('ptsort').set(self.settings.get_point_sort()[key])
+        hou.node('/obj/Geometry/transform_default_' + key).parmTuple('t').set([0,0,self.settings.get_priority()[key] * 10])
+        hou.node('/obj/Geometry/blast_default_' + key).parm('group').set(key)
+        
+        self.out_nodes.append(hou.node('/obj/Geometry/OUT_' + key))
+
+    def _obj_setup_extra_parameters(self, selected_map, key, index):
+        hou.node('/obj/Geometry/mask_default_' + key + '_' + str(index)).parm('file').set(selected_map)
+        hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
+        hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
+        hou.node('/obj/Geometry/group_default_' + key + '_' + str(index)).parm('groupname').set(key + '_' + str(index))
     
-    def setup_houdini(self, background_maps, all_maps_dict, current_masks, classes, b_mix_multiple_instances):
+    def _obj_combine_setups(self, key, index):
+        hou.node('/obj/Geometry/merge_default_' + key).setNextInput(hou.node('/obj/Geometry/group_default_' + key + '_' + str(index)))
+    
+    def _obj_create_out_structure(self, key, index):
+        blast_node = hou.node('/obj/Geometry').createNode('blast')
+        blast_node.setName('blast_' + key + '_' + str(index))
+        blast_node.setInput(0, hou.node('/obj/Geometry/transform_default_' + key))
+        blast_node.parm('group').set(key + '_' + str(index))
+        blast_node.parm('negate').set(1)
+        
+        out_node = hou.node('/obj/Geometry').createNode('null')
+        out_node.setName('OUT_' + key + '_' + str(index))
+        out_node.setInput(0, blast_node)
+        
+        self.out_nodes.append(out_node)
+            
+    def _obj_create_setup(self, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances):
+        if b_mix_multiple_instances:
+            for key in all_maps_dict.keys():
+                if key in classes_list and key:
+                    self._rename_nodes(self._create_setup(self.geometry,self.default_setup_nodes), key)
+                    self._obj_setup_default_parameters(all_maps_dict,key)
+                    for index, selected_map in enumerate(all_maps_dict[key][1:]):
+                        self._rename_nodes(self._create_setup(self.geometry,self.extra_setup_nodes), key + '_' + str(index))
+                        self._obj_setup_extra_parameters(selected_map, key, index)
+                        self._obj_combine_setups(key,index)
+                        self._obj_create_out_structure(key,index)
+        else:
+            for key in current_masks_dict.keys(): 
+                self._rename_nodes(self._create_setup(self.geometry,self.default_setup_nodes), key)
+                self._obj_setup_default_parameters(current_masks_dict,key)
+                    
+    
+    def _lop_create_setup(self, classes_list, b_mix_multiple_instances):
+        
+        if b_mix_multiple_instances:
+            for selected_class in classes_list:
+                merge_node = self.lop.createNode('merge')
+                merge_node.setName('merge_sop_' + selected_class)
+                for node in self.out_nodes:
+                    if selected_class in node.name():
+                        node_name = "_".join(node.name().split('_')[1:])
+                        sop_node = self.lop.createNode('sopimport')
+                        sop_node.setName('sop_default_' + node_name)
+                        sop_node.parm('soppath').set(node.path())
+                        sop_node.setInput(0,self.lop.node('camera'))
+                        merge_node.setNextInput(sop_node)
+                self._rename_nodes(self._create_setup(self.lop, self.lop_mask_nodes), selected_class)
+                self._rename_nodes(self._create_setup(self.lop, self.lop_normal_nodes), selected_class)
+                hou.node('/obj/Render/merge_all_albedo').setNextInput(merge_node )
+                hou.node('/obj/Render/karmarendersettings_default_mask_' + selected_class).setInput(0,merge_node)
+                hou.node('/obj/Render/materiallibrary_default_normal_' + selected_class).setInput(0,merge_node)            
+        else:
+            for index,node in enumerate(self.out_nodes):            
+                node_name = "_".join(node.name().split('_')[1:])
+                sop_node = self.lop.createNode('sopimport')
+                sop_node.setName('sop_default_' + node_name)
+                sop_node.parm('soppath').set(node.path())
+                sop_node.setInput(0,self.lop.node('camera'))
+                
+                self._rename_nodes(self._create_setup(self.lop, self.lop_mask_nodes), node_name)
+                self._rename_nodes(self._create_setup(self.lop, self.lop_normal_nodes), node_name)
+                self._lop_combine_setup(index, node_name, sop_node)
+
+
+    def _lop_combine_setup(self, index, node_name, node):
+        hou.node('/obj/Render/merge_all_albedo').setNextInput(node )
+        hou.node('/obj/Render/karmarendersettings_default_mask_' + node_name).setInput(0,node)
+        hou.node('/obj/Render/materiallibrary_default_normal_' + node_name).setInput(0,node)
+    
+    def setup_houdini(self, background_maps, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances):
+        self.out_nodes = []
+
         self._obj_set_references()
         self._lop_set_references()
 
-        if b_mix_multiple_instances:
-            self._obj_create_multiple_setup(all_maps_dict, classes)
-        else:
-            self._obj_create_single_setup(current_masks, classes)
-            
-        self._lop_create_setup()
+        self._obj_create_setup(all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances)
+        self._lop_create_setup(classes_list, b_mix_multiple_instances)
         
         self._fix_layout(self.geometry)
         self._fix_layout(self.lop)
