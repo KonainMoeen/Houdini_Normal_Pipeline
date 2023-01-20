@@ -1,7 +1,6 @@
 import subprocess
-import os, sys, time
-import threading 
-from paths import get_houdini_path
+import os
+from paths import Paths
  
 def locate_houdini():    
     import os
@@ -32,18 +31,17 @@ def locate_houdini():
     return install_path
 
 def locate_hython_and_hkey():
-    #houdini_path = locate_houdini()
-    #print(houdini_path)
-    houdini_path = get_houdini_path()
+    houdini_path = Paths().get_houdini_path()
     hython_path = houdini_path + 'bin\\hython3.9.exe'
     hkey_path = houdini_path + 'bin\\hkey.exe'
     assert os.path.exists(hython_path), 'hython not found!'
     assert os.path.exists(hkey_path), 'hython not found!'
     return hython_path, hkey_path
 
-def bootstrap(argv):
+def run_pipeline():
     hython_path, hkey_path = locate_hython_and_hkey()
     subprocess.Popen([hkey_path])
-    subprocess.call([hython_path, "New_main.py"] + argv)# "syntheticDataGen_001.hip", "main.py"] + argv)
+    subprocess.call([hython_path, "main.py"])
+    
 
-bootstrap(sys.argv[1:])
+run_pipeline()

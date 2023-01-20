@@ -1,8 +1,8 @@
 from pprint import pprint
-from paths import get_assets_path
+from paths import Paths
 import os
 import itertools
-from New_settings import Settings
+from settings import Settings
 
 class FileStructureSetup():
     def __init__(self, _asset_type_3d, _asset_type_surface, _asset_type_atlas, classes_list):
@@ -62,7 +62,7 @@ class FileStructureSetup():
          
     # read all the folder and files in the assets folder and save the files in variables
     def read_files(self):
-        for root, dir, files in os.walk(get_assets_path()):
+        for root, dir, files in os.walk(Paths().get_asset_path()):
             for folder in self._setup_folders_to_search():
                 if folder in root:
                     if files:

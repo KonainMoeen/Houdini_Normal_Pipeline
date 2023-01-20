@@ -3,11 +3,10 @@
 		{
 			"min_num_samples": 1,
 			"asset_types": {
-				"3D": ["moss"],
-				"surface": ["moss", "green_lichen"],
+				"3D": [],
+				"surface": ["white_lichen","moss", "yellow_lichen", "green_lichen"],
 				"atlas": []
 			},
-			"scatter_percent": 0.8,
 			"mix_multiple_instances": true
 		}
 	]

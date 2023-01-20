@@ -1,70 +1,67 @@
-import sys
-import os, sys
-os.environ["OPENCV_IO_ENABLE_OPENEXR"]="1"
-from paths import append_anaconda3_library
-append_anaconda3_library()
-from houdinisetup import HoudiniSetup
 import json
-from paths import get_parser, get_json_file
+from paths import Paths
 from filestructure import FileStructureSetup
 from pprint import pprint
 
-argv = sys.argv[1:]
-def main(args = vars(get_parser().parse_known_args(argv)[0])):   
+class Main():
+    def __init__(self):
+        self.paths = Paths()
+        self.paths.append_anaconda3_library()
     
-    ## read json file
-    jsonObj = json.load(open(get_json_file()))
-    ## setup json variables
-    batches = jsonObj['batches']
+    def read_configuration(self):
+        jsonObj = json.load(open(self.paths.get_json_file()))
+        return jsonObj['batches']
     
-    # looping through each batch represented per line in batches_to_render.txt
-    for batch_idx, current_batch in enumerate(batches):
+    def get_classes(self, batch_index, batches):
+        classes_list = list()
+        for class_type in batches[batch_index]['asset_types'].values():
+            classes_list += class_type
+        return list(set(classes_list))
+    
+    def execute_pipeline(self):
+        from houdini_setup import HoudiniSetup
         
-        renders_per_surface = jsonObj['batches'][batch_idx]['min_num_samples']
-        if renders_per_surface == 0: continue
-
-        asset_types_3d = jsonObj['batches'][batch_idx]['asset_types']['3D']
-        asset_types_surface = jsonObj['batches'][batch_idx]['asset_types']['surface']
-        asset_types_atlas = jsonObj['batches'][batch_idx]['asset_types']['atlas']
-        intensity_multiplier = jsonObj['batches'][batch_idx]['scatter_percent']
-        b_mix_multiple_instances = jsonObj['batches'][batch_idx]['mix_multiple_instances']
+        batches = self.read_configuration()
         
-        houObj = HoudiniSetup(args)
-        
-        if any(asset_types_3d):
-            print('Initilize preprocessing UV-islands for 3d-assets')
-            houObj.preprocess_3D_asset_masks(args)
-            print('DONE: masks for UV-islands created for all 3d-assets!')
-        
-        # Using the json input, read the asset maps and setup the render structure
-        fileObj = FileStructureSetup(asset_types_3d, asset_types_surface, asset_types_atlas)
-        fileObj.read_files()
-        
-        if not b_mix_multiple_instances:
-            # each unique iteration will create a unique folder
-            total_unique_iterations = (len(fileObj.get_all_maps_dict()['green_lichen']) if len(fileObj.get_all_maps_dict()['green_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['white_lichen']) if len(fileObj.get_all_maps_dict()['white_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['moss']) if len(fileObj.get_all_maps_dict()['moss']) > 0  else 1 )
-        else:
-            total_unique_iterations = 1
+        for batch_index in range(len(batches)):
             
-        for background_maps in fileObj.get_background_maps_list():
-            for index in range(total_unique_iterations):
+            classes_list = self.get_classes(batch_index,batches)
+                        
+            renders_per_surface = batches[batch_index]['min_num_samples']
+            if renders_per_surface == 0: continue
+
+            asset_types_3d = batches[batch_index]['asset_types']['3D']
+            asset_types_surface = batches[batch_index]['asset_types']['surface']
+            asset_types_atlas = batches[batch_index]['asset_types']['atlas']
+            b_mix_multiple_instances = batches[batch_index]['mix_multiple_instances']
+            
+            houObj = HoudiniSetup()
+            if any(asset_types_3d):
+                print("Preprocessing UV islands for 3D Assets")
+                houObj.preprocess_3D_asset_masks()
+                print("Done Creating masks for UV islands all 3D Assets")
                 
-                ## print all of the maps read from the assets folder / print the masks for the current render
-                #pprint(fileObj.get_all_maps_dict())
-                #pprint(fileObj.get_masks_list())
-        
-                ## open the main pipeline hip file, set the maps and render 
-                houObj.load_hipfile(args['hipfile'])
-                houObj.set_houdini(batch_idx, background_maps, index, fileObj.get_masks_list()[index], fileObj.get_all_maps_dict())
+            # Using the json input, read the asset maps and setup the render structure
+            fileObj = FileStructureSetup(asset_types_3d, asset_types_surface, asset_types_atlas, classes_list)
+            fileObj.read_files()
+            
+            if not b_mix_multiple_instances:
+                # each unique iteration will create a unique folder
+                total_unique_iterations = len(fileObj.get_unique_mask_structure(classes_list))#ceil( renders_per_surface / (len(fileObj.get_background_maps_list()) *  ((len(fileObj.get_all_maps_dict()['green_lichen']) if len(fileObj.get_all_maps_dict()['green_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['white_lichen']) if len(fileObj.get_all_maps_dict()['white_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['moss']) if len(fileObj.get_all_maps_dict()['moss']) > 0  else 1 ))))
+            else:
+                total_unique_iterations = 1
+            
+            pprint(fileObj.get_all_maps_dict())
+            #pprint(fileObj.get_unique_mask_structure(classes_list))
+            #pprint(fileObj.get_background_maps_list())
+            
+            for background_maps in fileObj.get_background_maps_list():
+                for index in range(total_unique_iterations):
+                    houObj.load_hipfile(self.paths.get_pipeline_hip_file())
+                    houObj.setup_houdini( background_maps, fileObj.get_all_maps_dict(), fileObj.get_unique_mask_structure(classes_list)[index], classes_list, b_mix_multiple_instances, batch_index, index)
+                    houObj.render(renders_per_surface, classes_list)
                 
-                for num_of_renders in range(renders_per_surface):
-                    houObj.setFrameNumber(None)
-                    houObj.render(num_of_renders + 1)
-                    
-                    
-                #houObj.save_and_increment_hip_file()
-        
-    print("Completed")
+                houObj.save_and_increment_hip_file()
     
 if __name__ == '__main__':
-    main()
+    Main().execute_pipeline()
