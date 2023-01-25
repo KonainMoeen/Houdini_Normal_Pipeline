@@ -38,26 +38,29 @@ class HoudiniSetup():
         
         mask = self.geometry.node('mask_default')
         uv = self.geometry.node('uvproject_default')
-        foreach_begin =self.geometry.node('foreach_begin_default')
-        delete_small_parts = self.geometry.node('delete_small_parts_default')
+        foreach_center_begin =self.geometry.node('foreach_center_begin_default')
         center_position = self.geometry.node('center_position_default')
-        foreach_end = self.geometry.node('foreach_end_default')
+        foreach_center_end = self.geometry.node('foreach_center_end_default')
         group = self.geometry.node('group_default')
         merge = self.geometry.node('merge_default')
         connectivity = self.geometry.node('connectivity_default')
         scatter = self.geometry.node('scatter_default')
         randomize_rotations = self.geometry.node('randomize_rotation_default')
+        randomize_scale = self.geometry.node('randomize_scale_default')
         sort = self.geometry.node('sort_default')
         attribute_from_pieces = self.geometry.node('attribfrompieces_default')
         copytopoints = self.geometry.node('copytopoints_default')
         reverse = self.geometry.node('reverse_default')
+        foreach_delete_begin = self.geometry.node('foreach_delete_begin_default')
+        delete_small_parts = self.geometry.node('delete_small_parts_default')
+        foreach_delete_end = self.geometry.node('foreach_delete_end_default')
         attribdelete  = self.geometry.node('attribdelete_default')
         transform = self.geometry.node('transform_default')
         blast = self.geometry.node('blast_default')
         out = self.geometry.node('OUT')
         
-        self.default_setup_nodes = [mask, uv, foreach_begin, delete_small_parts, center_position,foreach_end, group, merge,connectivity,scatter,randomize_rotations,sort,attribute_from_pieces,copytopoints, reverse, attribdelete, transform, blast, out]
-        self.extra_setup_nodes = [mask, uv, foreach_begin, delete_small_parts, center_position,foreach_end, group]
+        self.default_setup_nodes = [mask, uv, foreach_center_begin, center_position,foreach_center_end, group, merge,connectivity,scatter,randomize_rotations, randomize_scale,sort,attribute_from_pieces,copytopoints, reverse,  foreach_delete_begin, delete_small_parts, foreach_delete_end, attribdelete, transform, blast, out]
+        self.extra_setup_nodes = [mask, uv, foreach_center_begin, delete_small_parts, center_position,foreach_center_end, group]
         
     def _lop_set_references(self):
         self.lop = hou.node('/obj/Render')
@@ -66,8 +69,8 @@ class HoudiniSetup():
         mask_render_settings = self.lop.node('karmarendersettings_default_mask')
         mask_render = self.lop.node('render_default_mask')
         #for albedo
-        merge = self.lop.node('merge_all_albedo')
-        albedo_material_library = self.lop.node('materiallibrary_albedo')
+        merge = self.lop.node('merge_all')
+        albedo_material_library = self.lop.node('materiallibrary_default_albedo')
         albedo_render_settings = self.lop.node('karmarendersettings_default_albedo')
         albedo_render = self.lop.node('render_default_albedo')
         # for normal
@@ -95,6 +98,9 @@ class HoudiniSetup():
         hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
         hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
         hou.node('/obj/Geometry/sort_default_' + key).parm('ptsort').set(self.settings.get_point_sort()[key])
+        hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_min').set(self.settings.get_randomize_scale_values()[0][key])
+        hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_max').set(self.settings.get_randomize_scale_values()[1][key])
+
         hou.node('/obj/Geometry/transform_default_' + key).parmTuple('t').set([0,0,(self.settings.get_all_classes().index(key) + 1) * 10])
         hou.node('/obj/Geometry/blast_default_' + key).parm('group').set(key)
         
@@ -155,8 +161,10 @@ class HoudiniSetup():
                         sop_node.setInput(0,self.lop.node('camera'))
                         merge_node.setNextInput(sop_node)
                         self._lop_create_materials(all_maps_dict, node_name, index, selected_class)
+                        pprint(self.lop.children())
+                        self._lop_combine_setup(node_name, sop_node, b_mix_multiple_instances)
 
-                hou.node('/obj/Render/merge_all_albedo').setNextInput(merge_node )
+                hou.node('/obj/Render/merge_all').setNextInput(merge_node )
                 hou.node('/obj/Render/karmarendersettings_default_mask_' + selected_class).setInput(0,merge_node)
                 hou.node('/obj/Render/materiallibrary_default_normal_' + selected_class).setInput(0,merge_node)            
         else:
@@ -168,7 +176,7 @@ class HoudiniSetup():
                 sop_node.setInput(0,self.lop.node('camera'))
                 self._rename_nodes(self._create_setup(self.lop, self.lop_mask_nodes), node_name)
                 self._rename_nodes(self._create_setup(self.lop, self.lop_normal_nodes), node_name)
-                self._lop_combine_setup(index, node_name, sop_node)
+                self._lop_combine_setup(node_name, sop_node, b_mix_multiple_instances)
                 self._lop_create_materials(all_maps_dict, node_name, index, node_name)
 
         self._lop_setup_background_material_maps(background_maps)
@@ -181,7 +189,7 @@ class HoudiniSetup():
                 material[0].setName(node_name + '_' + maps_type)
                 self._lop_setup_material_maps(all_maps_dict, maps_type, material[0])
 
-                material_library = self.lop.node('materiallibrary_' + maps_type)
+                material_library = self.lop.node('materiallibrary_default_' + maps_type)
                 if maps_type == 'normal': # because we want normals separately for our compositing
                     material_library = self.lop.node('materiallibrary_default_normal_' + selected_class)
                     material_library.parm('materials').set(len(self.out_nodes))
@@ -210,10 +218,15 @@ class HoudiniSetup():
             if texture_id in maps:
                 material.node('mtlxUsdUVTexture').parm('file').set(maps)
     
-    def _lop_combine_setup(self, index, node_name, node):
-        hou.node('/obj/Render/merge_all_albedo').setNextInput(node )
-        hou.node('/obj/Render/karmarendersettings_default_mask_' + node_name).setInput(0,node)
-        hou.node('/obj/Render/materiallibrary_default_normal_' + node_name).setInput(0,node)
+    def _lop_combine_setup(self,node_name, node, b_mix_multiple_instance):
+        merge_node = hou.node('/obj/Render/merge_all')
+        merge_node.setNextInput(node)
+        if not b_mix_multiple_instance:
+            hou.node('/obj/Render/karmarendersettings_default_mask_' + node_name).setInput(0,node)
+            hou.node('/obj/Render/materiallibrary_default_normal_' + node_name).setInput(0,node)
+        for maps_type in self.settings.get_all_maps():
+            if maps_type not in self.settings.get_all_classes() and maps_type != 'normal':
+                hou.node('/obj/Render/materiallibrary_default_' + maps_type).setInput(0,merge_node)
     
     def setup_houdini(self, background_maps, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances, batch_index, index):
         self.out_nodes = []

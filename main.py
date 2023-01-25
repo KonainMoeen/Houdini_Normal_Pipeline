@@ -25,6 +25,8 @@ class Main():
         
         for batch_index in range(len(batches)):
             
+            pprint("Running Batch" + " " + str(batch_index + 1))
+            
             classes_list = self.get_classes(batch_index,batches)
                         
             renders_per_surface = batches[batch_index]['min_num_samples']
@@ -51,8 +53,8 @@ class Main():
             else:
                 total_unique_iterations = 1
             
-            pprint(fileObj.get_all_maps_dict())
-            #pprint(fileObj.get_unique_mask_structure(classes_list))
+            # pprint(fileObj.get_all_maps_dict())
+            # pprint(fileObj.get_unique_mask_structure(classes_list))
             #pprint(fileObj.get_background_maps_list())
             
             for background_maps in fileObj.get_background_maps_list():
