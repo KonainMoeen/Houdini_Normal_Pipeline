@@ -29,23 +29,25 @@ class Settings():
 
         return threshold
     
-    def get_scale_multiplier(self):
-        scale = {}
-        scale['green_lichen'] = 1
-        scale['white_lichen'] = 1
-        scale['yellow_lichen'] = 1
-        scale['moss'] = 1
-        scale['red_lichen'] = 1
-        return scale
+    # def get_scale_multiplier(self):
+    #     scale = {}
+    #     scale['green_lichen'] = 1
+    #     scale['white_lichen'] = 1
+    #     scale['yellow_lichen'] = 1
+    #     scale['moss'] = 1
+    #     scale['red_lichen'] = 1
+    #     return scale
     
-    def get_total_count(self):
+    def get_total_count(self): #configure instance count
         # total - random value between 0 to max amount to subtract
+        # to add new class : 
+        #   no_of_points['class_name'] = 'max number of points - random
         no_of_points = {}
         no_of_points['green_lichen'] = '200 - fit(rand($F * 25234),0,1,0,100)'
         no_of_points['white_lichen'] = '30 - fit(rand($F * 1212),0,1,0,20)'
-        no_of_points['yellow_lichen'] = '80 - fit(rand($F * 1212),0,1,0,20)'
+        no_of_points['yellow_lichen'] = '80 - fit(rand($F * 1612),0,1,0,20)'
         no_of_points['moss'] = '100 - fit(rand($F * 12431),0,1,0,50)'
-        no_of_points['red_lichen'] = '75 - fit(rand($F * 12431),0,1,0,50)'
+        no_of_points['red_lichen'] = '75 - fit(rand($F * 2341),0,1,0,50)'
 
         return no_of_points
     
@@ -72,10 +74,10 @@ class Settings():
         scale_min['moss'] = 1
         scale_min['red_lichen'] = 1
         
-        scale_max['green_lichen'] = 1
-        scale_max['white_lichen'] = 1
-        scale_max['yellow_lichen'] = 1
-        scale_max['moss'] = 1
-        scale_max['red_lichen'] = 3
+        scale_max['green_lichen'] = 2
+        scale_max['white_lichen'] = 2
+        scale_max['yellow_lichen'] = 4
+        scale_max['moss'] = 2
+        scale_max['red_lichen'] = 1
         
         return scale

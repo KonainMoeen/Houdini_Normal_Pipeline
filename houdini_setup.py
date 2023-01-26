@@ -94,7 +94,7 @@ class HoudiniSetup():
     def _obj_setup_default_parameters(self, current_masks_dict, key):
         hou.node('/obj/Geometry/mask_default_' + key).parm('file').set(current_masks_dict[key][0])
         hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
-        hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
+        #hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
         hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
         hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
         hou.node('/obj/Geometry/sort_default_' + key).parm('ptsort').set(self.settings.get_point_sort()[key])
@@ -109,7 +109,7 @@ class HoudiniSetup():
     def _obj_setup_extra_parameters(self, selected_map, key, index):
         hou.node('/obj/Geometry/mask_default_' + key + '_' + str(index)).parm('file').set(selected_map)
         hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
-        hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
+        #hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
         hou.node('/obj/Geometry/group_default_' + key + '_' + str(index)).parm('groupname').set(key + '_' + str(index))
     
     def _obj_combine_setups(self, key, index):
@@ -161,7 +161,6 @@ class HoudiniSetup():
                         sop_node.setInput(0,self.lop.node('camera'))
                         merge_node.setNextInput(sop_node)
                         self._lop_create_materials(all_maps_dict, node_name, index, selected_class)
-                        pprint(self.lop.children())
                         self._lop_combine_setup(node_name, sop_node, b_mix_multiple_instances)
 
                 hou.node('/obj/Render/merge_all').setNextInput(merge_node )
@@ -198,7 +197,9 @@ class HoudiniSetup():
                 else:
                     # to make space for background geometry and materials
                     material_library.parm('materials').set(len(self.out_nodes) + 1)
+                    material_library.parm('geopath'+ str(index + 1)).set('/bg_surface/')
                     material_library.parm('geopath'+ str(index + 2)).set('/sop_default_' +  node_name + '/')
+                    material_library.parm('matnode'+ str(index + 1)).set('../' + maps_type + '_materials/' + 'bg_surface' + '_' + maps_type)
                     material_library.parm('matnode'+ str(index + 2)).set('../' + maps_type + '_materials/' + node_name + '_' + maps_type)
                     
                 
@@ -279,15 +280,22 @@ class HoudiniSetup():
         composite_nodes_list = []
         for index,selected_class in enumerate(classes_list):
             # create file node
-            file_node = hou.node('obj/Composite').createNode('file')
-            file_node.setName(selected_class)
+            if render_number > 1: # incase of multiple renders don't create new nodes -  use nodes previously created
+                file_node = hou.node('obj/Composite/' + selected_class)
+            else:
+                file_node = hou.node('obj/Composite').createNode('file')
+                file_node.setName(selected_class)
+                
             file_node.parm('filename1').set(self.render_path + "normal_" + selected_class + '_' +  str(render_number) + '.' +  self.settings.get_render_file_format() )
             file_node.parmTuple('size').set((self.settings.get_render_resolution(),self.settings.get_render_resolution()))
             
             # create composite node
             if index > 0:
-                composite_node = hou.node('obj/Composite').createNode('over')   # 0=over 1=under 6=add
-                composite_node.setName('composite_' + str(index))
+                if render_number > 1: # incase of multiple renders don't create new nodes -  use nodes previously created
+                    composite_node = hou.node('obj/Composite/' + "composite_" + str(index))
+                else:
+                    composite_node = hou.node('obj/Composite').createNode('over')   # 0=over 1=under 6=add
+                    composite_node.setName('composite_' + str(index))
                 composite_nodes_list.append(composite_node)
             elif index == 0:
                 hou.node('obj/Composite/background').parm('filename1').set(self.render_path + 'normal_background_' +  str(render_number) + '.' +  self.settings.get_render_file_format() )
@@ -304,7 +312,6 @@ class HoudiniSetup():
                     else:
                         composite_nodes_list[count-1].setInput(1, hou.node('obj/Composite/' + selected_class))
                     count = count + 1
-
             # connect composite nodes to composite nodes and connect to vopcop
             for index, composite_node in enumerate(composite_nodes_list):
                 if index > 0:
@@ -312,11 +319,11 @@ class HoudiniSetup():
             hou.node('obj/Composite/vopcop2filter2').setInput(0, composite_nodes_list[-1])
         else:
             hou.node('obj/Composite/vopcop2filter2').setInput(0, hou.node('obj/Composite/' + classes_list[0]))
-
+        
     def _render_composite(self, render_number, classes_list):
         self._cop_setup_maps(render_number, classes_list)
         self._fix_layout(hou.node('obj/Composite'))
-        hou.node('obj/Composite/normal_out').parm('copoutput').set(self.render_path + 'Normal' + '.' + self.settings.get_render_file_format())
+        hou.node('obj/Composite/normal_out').parm('copoutput').set(self.render_path + 'normal_' + str(render_number)  + '.' + self.settings.get_render_file_format())
         hou.node('obj/Composite/normal_out').render(verbose=True, output_progress=True)
     
     def setFrameNumber(self,frame):

@@ -98,7 +98,7 @@ class FileStructureSetup():
             for index,map in enumerate(map_list):
                 temp_dict[classes_list[index]] = [map]
         
-                list_of_dict.append(temp_dict)
+            list_of_dict.append(temp_dict)
 
         return list_of_dict
  
