@@ -2,7 +2,7 @@ import sys
 
 class Paths():
     
-    PIPELINE_PATH = "C:/Users/Konain/Documents/HoudiniProjects/Houdini_Normal_Pipeline/"
+    PIPELINE_PATH = "C:/Users/Konain/Desktop/Houdini Normal Pipeline/"
     
     def __init__(self):
         pass
@@ -14,7 +14,7 @@ class Paths():
         sys.path.append("c:/users/Konain/anaconda3/lib/site-packages")
         
     def get_houdini_path(self):
-        return "E:/Houdini/Houdini 19.5.368/"
+        return "D:/Softwares/Side Effects Software/Houdini 19.5.368/"
     
     def get_asset_path(self):
         return self.PIPELINE_PATH + 'assets'

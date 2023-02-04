@@ -91,13 +91,17 @@ class HoudiniSetup():
             node.setName(node.name()[:-1] + '_' + rename_string)
         return nodes
     
-    def _obj_setup_default_parameters(self, current_masks_dict, key):
+    def _obj_setup_default_parameters(self, current_masks_dict, key, scatter_percent):
         hou.node('/obj/Geometry/mask_default_' + key).parm('file').set(current_masks_dict[key][0])
         hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
         #hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
         hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
-        hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
-        hou.node('/obj/Geometry/sort_default_' + key).parm('ptsort').set(self.settings.get_point_sort()[key])
+        if scatter_percent > 0:
+            pass
+        else:
+            hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
+        hou.node('/obj/Geometry/sort_default_' +
+                 key).parm('ptsort').set(self.settings.get_point_sort()[key])
         hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_min').set(self.settings.get_randomize_scale_values()[0][key])
         hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_max').set(self.settings.get_randomize_scale_values()[1][key])
 
@@ -128,12 +132,12 @@ class HoudiniSetup():
         
         self.out_nodes.append(out_node)
             
-    def _obj_create_setup(self, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances):
+    def _obj_create_setup(self, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances, scatter_percent):
         if b_mix_multiple_instances:
             for key in all_maps_dict.keys():
                 if key in classes_list and key:
                     self._rename_nodes(self._create_setup(self.geometry,self.default_setup_nodes), key)
-                    self._obj_setup_default_parameters(all_maps_dict,key)
+                    self._obj_setup_default_parameters(all_maps_dict,key, scatter_percent)
                     for index, selected_map in enumerate(all_maps_dict[key][1:]):
                         self._rename_nodes(self._create_setup(self.geometry,self.extra_setup_nodes), key + '_' + str(index))
                         self._obj_setup_extra_parameters(selected_map, key, index)
@@ -142,7 +146,7 @@ class HoudiniSetup():
         else:
             for key in current_masks_dict.keys(): 
                 self._rename_nodes(self._create_setup(self.geometry,self.default_setup_nodes), key)
-                self._obj_setup_default_parameters(current_masks_dict,key)
+                self._obj_setup_default_parameters(current_masks_dict,key, scatter_percent)
                     
     
     def _lop_create_setup(self, background_maps, all_maps_dict, classes_list, b_mix_multiple_instances):
@@ -197,9 +201,9 @@ class HoudiniSetup():
                 else:
                     # to make space for background geometry and materials
                     material_library.parm('materials').set(len(self.out_nodes) + 1)
-                    material_library.parm('geopath'+ str(index + 1)).set('/bg_surface/')
+                    material_library.parm('geopath'+ str(1)).set('/bg_surface/')
                     material_library.parm('geopath'+ str(index + 2)).set('/sop_default_' +  node_name + '/')
-                    material_library.parm('matnode'+ str(index + 1)).set('../' + maps_type + '_materials/' + 'bg_surface' + '_' + maps_type)
+                    material_library.parm('matnode'+ str(1)).set('../' + maps_type + '_materials/' + 'bg_surface' + '_' + maps_type)
                     material_library.parm('matnode'+ str(index + 2)).set('../' + maps_type + '_materials/' + node_name + '_' + maps_type)
                     
                 
@@ -221,21 +225,21 @@ class HoudiniSetup():
     
     def _lop_combine_setup(self,node_name, node, b_mix_multiple_instance):
         merge_node = hou.node('/obj/Render/merge_all')
-        merge_node.setNextInput(node)
         if not b_mix_multiple_instance:
+            merge_node.setNextInput(node)
             hou.node('/obj/Render/karmarendersettings_default_mask_' + node_name).setInput(0,node)
             hou.node('/obj/Render/materiallibrary_default_normal_' + node_name).setInput(0,node)
         for maps_type in self.settings.get_all_maps():
             if maps_type not in self.settings.get_all_classes() and maps_type != 'normal':
                 hou.node('/obj/Render/materiallibrary_default_' + maps_type).setInput(0,merge_node)
     
-    def setup_houdini(self, background_maps, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances, batch_index, index):
+    def setup_houdini(self, background_maps, all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances, batch_index, index, scatter_percent):
         self.out_nodes = []
 
         self._obj_set_references()
         self._lop_set_references()
 
-        self._obj_create_setup(all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances)
+        self._obj_create_setup(all_maps_dict, current_masks_dict, classes_list, b_mix_multiple_instances, scatter_percent)
         self._lop_create_setup(background_maps,all_maps_dict, classes_list, b_mix_multiple_instances)
         self._out_create_setup()
         self._set_output_folder(background_maps[1].split('\\')[-1].split('_')[0], batch_index, index)
@@ -316,9 +320,12 @@ class HoudiniSetup():
             for index, composite_node in enumerate(composite_nodes_list):
                 if index > 0:
                     composite_node.setInput(0, composite_nodes_list[index - 1])
-            hou.node('obj/Composite/vopcop2filter2').setInput(0, composite_nodes_list[-1])
+                    
+            hou.node('obj/Composite/vopcop_mask').setInput(0, composite_nodes_list[-1])
+            hou.node('obj/Composite/over1').setInput(0,composite_nodes_list[-1])
         else:
-            hou.node('obj/Composite/vopcop2filter2').setInput(0, hou.node('obj/Composite/' + classes_list[0]))
+            hou.node('obj/Composite/vopcop_mask').setInput(0, hou.node('obj/Composite/' + classes_list[0]))
+            hou.node('obj/Composite/over1').setInput(0, hou.node('obj/Composite/' + classes_list[0]))
         
     def _render_composite(self, render_number, classes_list):
         self._cop_setup_maps(render_number, classes_list)

@@ -34,6 +34,7 @@ class Main():
             asset_types_3d = batches[batch_index]['asset_types']['3D']
             asset_types_surface = batches[batch_index]['asset_types']['surface']
             asset_types_atlas = batches[batch_index]['asset_types']['atlas']
+            scatter_percent = batches[batch_index]['scatter_percent']
             b_mix_multiple_instances = batches[batch_index]['mix_multiple_instances']
             
             houObj = HoudiniSetup()
@@ -59,7 +60,7 @@ class Main():
             for background_maps in fileObj.get_background_maps_list():
                 for index in range(total_unique_iterations):
                     houObj.load_hipfile(self.paths.get_pipeline_hip_file())
-                    houObj.setup_houdini( background_maps, fileObj.get_all_maps_dict(), fileObj.get_unique_mask_structure(classes_list)[index], classes_list, b_mix_multiple_instances, batch_index, index)
+                    houObj.setup_houdini( background_maps, fileObj.get_all_maps_dict(), fileObj.get_unique_mask_structure(classes_list)[index], classes_list, b_mix_multiple_instances, batch_index, index, scatter_percent)
                     houObj.render(renders_per_surface, classes_list)
                 houObj.save_and_increment_hip_file()
     

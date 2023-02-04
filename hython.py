@@ -32,7 +32,7 @@ def locate_houdini():
 
 def locate_hython_and_hkey():
     houdini_path = Paths().get_houdini_path()
-    hython_path = houdini_path + 'bin\\hython3.9.exe'
+    hython_path = houdini_path + 'bin\\hython3.7.exe'
     hkey_path = houdini_path + 'bin\\hkey.exe'
     assert os.path.exists(hython_path), 'hython not found!'
     assert os.path.exists(hkey_path), 'hython not found!'
