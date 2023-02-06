@@ -7,6 +7,7 @@
 				"surface": ["white_lichen","moss", "yellow_lichen", "green_lichen"],
 				"atlas": []
 			},
+			"scatter_percent": 0.7,
 			"mix_multiple_instances": true
 		}
 	]

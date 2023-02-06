@@ -36,7 +36,7 @@ class FileStructureSetup():
         filtered_atlas_dict = self._filter_dict(self._asset_type_atlas, unfiltered_atlas_dict)
         filtered_3d_dict = self._filter_dict(self._asset_type_3d, unfiltered_3d_dict)
         filtered_surface_dict = self._filter_dict(self._asset_type_surface, unfiltered_surface_dict)
-        
+                
         for key in filtered_3d_dict:
             self.assetmaps[key] = filtered_atlas_dict[key] + filtered_3d_dict[key] + filtered_surface_dict[key]
 
@@ -86,8 +86,10 @@ class FileStructureSetup():
     def get_unique_mask_structure(self, classes_list):
         unique_list= []
         for selected_class in classes_list:
-            unique_list.append(self.assetmaps[selected_class])
-            
+            if self.assetmaps[selected_class]:
+                unique_list.append(self.assetmaps[selected_class])
+            else:
+                classes_list.remove(selected_class)
         return self._list_to_dict(list(itertools.product(*unique_list)),classes_list)
     
     def _list_to_dict(self, old_list, classes_list):
@@ -99,7 +101,6 @@ class FileStructureSetup():
                 temp_dict[classes_list[index]] = [map]
         
             list_of_dict.append(temp_dict)
-
         return list_of_dict
  
     # sends all of the maps for the current batch in a form of dictionary
