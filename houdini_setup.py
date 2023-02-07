@@ -94,8 +94,8 @@ class HoudiniSetup():
     
     def _obj_setup_default_parameters(self, current_masks_dict, key, scatter_percent):
         hou.node('/obj/Geometry/mask_default_' + key).parm('file').set(current_masks_dict[key][0])
-        hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
-        #hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
+        hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.set_dict_value(self.settings.get_delete_small_parts_threshold(),key))
+        #hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.set_dict_value(self.settings.get_scale_multiplier(),key))
         hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
         if scatter_percent > 0:
             img_grey = cv2.imread(current_masks_dict[key][0], cv2.IMREAD_GRAYSCALE)
@@ -105,11 +105,11 @@ class HoudiniSetup():
             hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(str(scatter) +
                                                                                         ' * detail("../detailwrangle_default_' + key + '", "no_of_prims", 0) / ' + str(divider))
         else:
-            hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
+            hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.set_dict_value(self.settings.get_total_count(), key))
         hou.node('/obj/Geometry/sort_default_' +
-                 key).parm('ptsort').set(self.settings.get_point_sort()[key])
-        hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_min').set(self.settings.get_randomize_scale_values()[0][key])
-        hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_max').set(self.settings.get_randomize_scale_values()[1][key])
+                 key).parm('ptsort').set(self.set_dict_value(self.settings.get_point_sort(),key))
+        hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_min').set(self.set_dict_value(self.settings.get_randomize_scale_values()[0], key))
+        hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_max').set(self.set_dict_value(self.settings.get_randomize_scale_values()[1], key))
 
         hou.node('/obj/Geometry/transform_default_' + key).parmTuple('t').set([0,0,(self.settings.get_all_classes().index(key) + 1) * 10])
         hou.node('/obj/Geometry/blast_default_' + key).parm('group').set(key)
@@ -118,8 +118,8 @@ class HoudiniSetup():
 
     def _obj_setup_extra_parameters(self, selected_map, key, index):
         hou.node('/obj/Geometry/mask_default_' + key + '_' + str(index)).parm('file').set(selected_map)
-        #hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
-        #hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
+        #hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.set_dict_value(self.settings.get_delete_small_parts_threshold(),key))
+        #hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.set_dict_value(self.settings.get_scale_multiplier(),key))
         hou.node('/obj/Geometry/group_default_' + key + '_' + str(index)).parm('groupname').set(key + '_' + str(index))
     
     def _obj_combine_setups(self, key, index):
@@ -405,3 +405,11 @@ class HoudiniSetup():
                 unfiltered_mask[uv_mask == 0] = 0
                 cv2.imwrite(os.path.join(asset_folder, asset_id + '_' + resolution_str + 'K_UV-filtered_surfacemask_'+ mask_class +'.png'), unfiltered_mask)
                 os.remove(unfiltered_mask_fn)
+
+    def set_dict_value(self, selected_dict, key):
+        print(selected_dict)
+        print(type(selected_dict))
+        if selected_dict.get(key):
+            return selected_dict[key]
+        else:
+            return selected_dict['default']
