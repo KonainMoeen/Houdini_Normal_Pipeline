@@ -36,7 +36,7 @@ class HoudiniSetup():
         
         self.geometry = hou.node('/obj/Geometry')
         
-        mask = self.geometry.node('mask_default')
+        file = self.geometry.node('file_default')
         detailwrangle = self.geometry.node('detailwrangle_default')
         uv = self.geometry.node('uvproject_default')
         foreach_center_begin =self.geometry.node('foreach_center_begin_default')
@@ -60,8 +60,8 @@ class HoudiniSetup():
         blast = self.geometry.node('blast_default')
         out = self.geometry.node('OUT')
         
-        self.default_setup_nodes = [mask, detailwrangle, uv, foreach_center_begin, center_position,foreach_center_end, group, merge,connectivity,scatter,randomize_rotations, randomize_scale,sort,attribute_from_pieces,copytopoints, reverse,  foreach_delete_begin, delete_small_parts, foreach_delete_end, attribdelete, transform, blast, out]
-        self.extra_setup_nodes = [mask, uv, foreach_center_begin, center_position, foreach_center_end, group]
+        self.default_setup_nodes = [file, detailwrangle, uv, foreach_center_begin, center_position,foreach_center_end, group, merge,connectivity,scatter,randomize_rotations, randomize_scale,sort,attribute_from_pieces,copytopoints, reverse,  foreach_delete_begin, delete_small_parts, foreach_delete_end, attribdelete, transform, blast, out]
+        self.extra_setup_nodes = [file, uv, foreach_center_begin, center_position, foreach_center_end, group]
         
     def _lop_set_references(self):
         self.lop = hou.node('/obj/Render')
@@ -93,7 +93,7 @@ class HoudiniSetup():
         return nodes
     
     def _obj_setup_default_parameters(self, current_masks_dict, key, scatter_percent):
-        hou.node('/obj/Geometry/mask_default_' + key).parm('file').set(current_masks_dict[key][0])
+        hou.node('/obj/Geometry/file_default_' + key).parm('file').set(current_masks_dict[key][0].rstrip(current_masks_dict[key][0].split('.')[-1]) + 'fbx')
         hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.set_dict_value(self.settings.get_delete_small_parts_threshold(),key))
         #hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.set_dict_value(self.settings.get_scale_multiplier(),key))
         hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
@@ -117,7 +117,7 @@ class HoudiniSetup():
         self.out_nodes.append(hou.node('/obj/Geometry/OUT_' + key))
 
     def _obj_setup_extra_parameters(self, selected_map, key, index):
-        hou.node('/obj/Geometry/mask_default_' + key + '_' + str(index)).parm('file').set(selected_map)
+        hou.node('/obj/Geometry/file_default_' + key + '_' + str(index)).parm('file').set(selected_map.rstrip(selected_map.split('.')[-1]) + 'fbx')
         #hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.set_dict_value(self.settings.get_delete_small_parts_threshold(),key))
         #hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.set_dict_value(self.settings.get_scale_multiplier(),key))
         hou.node('/obj/Geometry/group_default_' + key + '_' + str(index)).parm('groupname').set(key + '_' + str(index))
@@ -222,7 +222,7 @@ class HoudiniSetup():
         
     def _lop_setup_material_maps(self,all_maps_dict, maps_type, material):
         node_name =  '_'.join(material.name().split('_')[:-1])
-        mask_file = self.geometry.node('mask_default_' + node_name).parm('file').eval()
+        mask_file = self.geometry.node('file_default_' + node_name).parm('file').eval()
         texture_id = mask_file.split('\\')[-1].split('_')[0]
         
         for maps in all_maps_dict[maps_type]:
@@ -406,9 +406,22 @@ class HoudiniSetup():
                 cv2.imwrite(os.path.join(asset_folder, asset_id + '_' + resolution_str + 'K_UV-filtered_surfacemask_'+ mask_class +'.png'), unfiltered_mask)
                 os.remove(unfiltered_mask_fn)
 
+    # save masks as fbx for faster rendering
+    def preprocess_masks(self, all_maps_dict, classes_list):
+        try:
+            hou.hipFile.load(self.paths.get_uv_hip_file())
+        except hou.LoadWarning as e:
+            print(e)
+            
+        for classes in classes_list:
+            for mask in all_maps_dict[classes]:
+                fbx_name = mask.split('/')[-1].split('.')[0]
+                if not os.path.isfile(mask.rstrip(mask.split('.')[-1]) + 'fbx'):
+                    hou.node('/obj/save_fbx/trace').parm('file').set(mask)
+                    hou.node('/obj/save_fbx/rop_fbx').parm('sopoutput').set(mask.rstrip(mask.split('/')[-1]) + fbx_name + '.fbx')
+                    hou.node('/obj/save_fbx/rop_fbx').render(verbose=True, output_progress=True)
+
     def set_dict_value(self, selected_dict, key):
-        print(selected_dict)
-        print(type(selected_dict))
         if selected_dict.get(key):
             return selected_dict[key]
         else:

@@ -55,7 +55,7 @@ class FileStructureSetup():
         for asset_files in assetfiles_list:
             for file in asset_files:
                 for key in maps_dict.keys():
-                    if key + '.' in file:
+                    if key + '.' in file and ".fbx" not in file:
                         maps_dict[key] =  maps_dict[key] + [file]
                         
         return maps_dict

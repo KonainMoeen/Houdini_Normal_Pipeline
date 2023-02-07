@@ -43,11 +43,14 @@ class Main():
                 print("Preprocessing UV islands for 3D Assets")
                 houObj.preprocess_3D_asset_masks()
                 print("Done Creating masks for UV islands all 3D Assets")
-                
+            
             # Using the json input, read the asset maps and setup the render structure
             fileObj = FileStructureSetup(asset_types_3d, asset_types_surface, asset_types_atlas, classes_list)
             fileObj.read_files()
 
+            # convert masks to fbx for faster rendering and calculations    
+            houObj.preprocess_masks(fileObj.get_all_maps_dict(), classes_list)
+            
             if not b_mix_multiple_instances:
                 # each unique iteration will create a unique folder
                 total_unique_iterations = len(fileObj.get_unique_mask_structure(classes_list))#ceil( renders_per_surface / (len(fileObj.get_background_maps_list()) *  ((len(fileObj.get_all_maps_dict()['green_lichen']) if len(fileObj.get_all_maps_dict()['green_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['white_lichen']) if len(fileObj.get_all_maps_dict()['white_lichen']) > 0  else 1 ) * (len(fileObj.get_all_maps_dict()['moss']) if len(fileObj.get_all_maps_dict()['moss']) > 0  else 1 ))))
