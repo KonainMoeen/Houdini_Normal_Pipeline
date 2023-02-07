@@ -61,7 +61,7 @@ class HoudiniSetup():
         out = self.geometry.node('OUT')
         
         self.default_setup_nodes = [mask, detailwrangle, uv, foreach_center_begin, center_position,foreach_center_end, group, merge,connectivity,scatter,randomize_rotations, randomize_scale,sort,attribute_from_pieces,copytopoints, reverse,  foreach_delete_begin, delete_small_parts, foreach_delete_end, attribdelete, transform, blast, out]
-        self.extra_setup_nodes = [mask, detailwrangle, uv, foreach_center_begin,delete_small_parts, center_position, foreach_center_end, group]
+        self.extra_setup_nodes = [mask, uv, foreach_center_begin, center_position, foreach_center_end, group]
         
     def _lop_set_references(self):
         self.lop = hou.node('/obj/Render')
@@ -103,7 +103,7 @@ class HoudiniSetup():
             scatter = int((scatter_percent - float(percentage_white_pixels_grey)) / float(percentage_white_pixels_grey))
             divider = int((1.01 - scatter_percent) * 100)
             hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(str(scatter) +
-                                                                                        ' * detail("../detailwrangle_default/", "no_of_prims", 0) / ' + str(divider))
+                                                                                        ' * detail("../detailwrangle_default_' + key + '", "no_of_prims", 0) / ' + str(divider))
         else:
             hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.settings.get_total_count()[key])
         hou.node('/obj/Geometry/sort_default_' +
@@ -118,7 +118,7 @@ class HoudiniSetup():
 
     def _obj_setup_extra_parameters(self, selected_map, key, index):
         hou.node('/obj/Geometry/mask_default_' + key + '_' + str(index)).parm('file').set(selected_map)
-        hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
+        #hou.node('/obj/Geometry/delete_small_parts_default_' + key + '_' + str(index)).parmTuple('threshold').set(self.settings.get_delete_small_parts_threshold()[key])
         #hou.node('/obj/Geometry/center_position_default_' + key + '_' + str(index)).parm('Scale_Multiplier').set(self.settings.get_scale_multiplier()[key])
         hou.node('/obj/Geometry/group_default_' + key + '_' + str(index)).parm('groupname').set(key + '_' + str(index))
     
