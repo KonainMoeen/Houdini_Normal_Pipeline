@@ -92,20 +92,35 @@ class HoudiniSetup():
             node.setName(node.name()[:-1] + '_' + rename_string)
         return nodes
     
-    def _obj_setup_default_parameters(self, current_masks_dict, key, scatter_percent):
+    def _scatter_amount(self, current_masks_dict, key, scatter_percent, b_mix_multiple_instances ):
+        scatter_amount = None
+        if scatter_percent > 0:
+            if b_mix_multiple_instances:
+                scatter = 0
+                for map in current_masks_dict[key]:
+                    img_grey = cv2.imread(map, cv2.IMREAD_GRAYSCALE)
+                    percentage_white_pixels_grey = np.sum(img_grey > 0) / (img_grey.shape[0]*img_grey.shape[1])
+                    current_scatter = int((scatter_percent - float(percentage_white_pixels_grey)) / float(percentage_white_pixels_grey))
+                    scatter += current_scatter
+                divider = int((1.01 - scatter_percent) * 100) + len(current_masks_dict[key])
+            else:
+                img_grey = cv2.imread(current_masks_dict[key][0], cv2.IMREAD_GRAYSCALE)
+                percentage_white_pixels_grey = np.sum(img_grey > 0) / (img_grey.shape[0]*img_grey.shape[1])
+                scatter = int((scatter_percent - float(percentage_white_pixels_grey)) / float(percentage_white_pixels_grey))
+                divider = int((1.01 - scatter_percent) * 100)/2
+            
+            scatter_amount = str(scatter) + ' * detail("../detailwrangle_default_' + key + '", "no_of_prims", 0) / ' + str(divider)
+        else:
+            scatter_amount = self.set_dict_value(self.settings.get_total_count(), key) # use settings defined in the settings file for scatter amount
+            
+        return scatter_amount
+    
+    def _obj_setup_default_parameters(self, current_masks_dict, key, scatter_percent, b_mix_multiple_instances):
         hou.node('/obj/Geometry/file_default_' + key).parm('file').set(current_masks_dict[key][0].rstrip(current_masks_dict[key][0].split('.')[-1]) + 'fbx')
         hou.node('/obj/Geometry/delete_small_parts_default_' + key).parmTuple('threshold').set(self.set_dict_value(self.settings.get_delete_small_parts_threshold(),key))
         #hou.node('/obj/Geometry/center_position_default_' + key).parm('Scale_Multiplier').set(self.set_dict_value(self.settings.get_scale_multiplier(),key))
         hou.node('/obj/Geometry/group_default_' + key).parm('groupname').set(key)
-        if scatter_percent > 0:
-            img_grey = cv2.imread(current_masks_dict[key][0], cv2.IMREAD_GRAYSCALE)
-            percentage_white_pixels_grey = np.sum(img_grey > 0) / (img_grey.shape[0]*img_grey.shape[1])
-            scatter = int((scatter_percent - float(percentage_white_pixels_grey)) / float(percentage_white_pixels_grey))
-            divider = int((1.01 - scatter_percent) * 100)
-            hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(str(scatter) +
-                                                                                        ' * detail("../detailwrangle_default_' + key + '", "no_of_prims", 0) / ' + str(divider))
-        else:
-            hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self.set_dict_value(self.settings.get_total_count(), key))
+        hou.node('/obj/Geometry/scatter_default_' + key).parm('npts').setExpression(self._scatter_amount(current_masks_dict, key, scatter_percent, b_mix_multiple_instances))
         hou.node('/obj/Geometry/sort_default_' +
                  key).parm('ptsort').set(self.set_dict_value(self.settings.get_point_sort(),key))
         hou.node('/obj/Geometry/randomize_scale_default_' + key).parm('random_scale_min').set(self.set_dict_value(self.settings.get_randomize_scale_values()[0], key))
@@ -143,7 +158,7 @@ class HoudiniSetup():
             for key in all_maps_dict.keys():
                 if key in classes_list and key:
                     self._rename_nodes(self._create_setup(self.geometry,self.default_setup_nodes), key)
-                    self._obj_setup_default_parameters(all_maps_dict,key, scatter_percent)
+                    self._obj_setup_default_parameters(all_maps_dict,key, scatter_percent, b_mix_multiple_instances)
                     for index, selected_map in enumerate(all_maps_dict[key][1:]):
                         self._rename_nodes(self._create_setup(self.geometry,self.extra_setup_nodes), key + '_' + str(index))
                         self._obj_setup_extra_parameters(selected_map, key, index)
@@ -152,7 +167,7 @@ class HoudiniSetup():
         else:
             for key in current_masks_dict.keys(): 
                 self._rename_nodes(self._create_setup(self.geometry,self.default_setup_nodes), key)
-                self._obj_setup_default_parameters(current_masks_dict,key, scatter_percent)
+                self._obj_setup_default_parameters(current_masks_dict,key, scatter_percent, b_mix_multiple_instances)
                     
     
     def _lop_create_setup(self, background_maps, all_maps_dict, classes_list, b_mix_multiple_instances):
