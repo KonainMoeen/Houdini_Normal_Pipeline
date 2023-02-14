@@ -308,7 +308,7 @@ class HoudiniSetup():
                     composite_node.setName('composite_' + str(index))
                 composite_nodes_list.append(composite_node)
             elif index == 0:
-                hou.node('obj/Composite/background').parm('filename1').set(self.render_path + 'normal_background_' +  str(render_number) + '.' +  self.settings.get_render_file_format() )
+                hou.node('obj/Composite/background').parm('filename1').set(self.render_path + 'normal_bg_' +  str(render_number) + '.' +  self.settings.get_render_file_format() )
 
         if composite_nodes_list:
             # connect file nodes to composite nodes
@@ -336,6 +336,7 @@ class HoudiniSetup():
     def _render_composite(self, render_number, classes_list):
         self._cop_setup_maps(render_number, classes_list)
         self._fix_layout(hou.node('obj/Composite'))
+        hou.node('obj/Composite/background').parmTuple('size').set((self.settings.get_render_resolution(),self.settings.get_render_resolution()))
         hou.node('obj/Composite/normal_out').parm('copoutput').set(self.render_path + 'normal_' + str(render_number)  + '.' + self.settings.get_render_file_format())
         hou.node('obj/Composite/normal_out').render(verbose=True, output_progress=True)
     
